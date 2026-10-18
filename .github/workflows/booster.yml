@@ -1,0 +1,22 @@
+name: Booster horaire
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  open:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: node bot.mjs
+        env:
+          REF_EMAIL: ${{ secrets.REF_EMAIL }}
+          REF_PASS: ${{ secrets.REF_PASS }}
