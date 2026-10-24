@@ -1,0 +1,5 @@
+node_modules/
+.env
+rapport-echanges.md
+echanges.json
+profils.json
