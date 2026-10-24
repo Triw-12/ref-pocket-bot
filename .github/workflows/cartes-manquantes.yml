@@ -1,0 +1,17 @@
+name: Cartes manquantes
+on:
+  workflow_dispatch:
+
+jobs:
+  rapport:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - run: cat cartes-manquantes.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cartes-manquantes
+          path: cartes-manquantes.md
