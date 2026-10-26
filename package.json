@@ -6,7 +6,8 @@
   "scripts": {
     "bot": "node --env-file-if-exists=.env bot.mjs",
     "echanges": "node --env-file-if-exists=.env amis-echanges.mjs",
-    "profils": "node --env-file-if-exists=.env profils.mjs"
+    "profils": "node --env-file-if-exists=.env profils.mjs",
+    "ameliore": "node --env-file-if-exists=.env ameliore-cartes.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4"

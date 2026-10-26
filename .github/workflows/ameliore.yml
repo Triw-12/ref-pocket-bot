@@ -1,0 +1,28 @@
+name: Amélioration des cartes
+on:
+  workflow_dispatch:
+  # Pour l'automatiser, décommente ces 2 lignes (exécution quotidienne à 06:00 UTC) :
+  # schedule:
+  #   - cron: "0 6 * * *"
+
+jobs:
+  ameliore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run ameliore
+        env:
+          REF_EMAIL: ${{ secrets.REF_EMAIL }}
+          REF_PASS: ${{ secrets.REF_PASS }}
+      - run: cat ameliorations.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ameliorations
+          path: ameliorations.md
