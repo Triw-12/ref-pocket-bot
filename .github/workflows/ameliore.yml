@@ -1,9 +1,6 @@
 name: Amélioration des cartes
 on:
   workflow_dispatch:
-  # Pour l'automatiser, décommente ces 2 lignes (exécution quotidienne à 06:00 UTC) :
-  # schedule:
-  #   - cron: "0 6 * * *"
 
 jobs:
   ameliore:

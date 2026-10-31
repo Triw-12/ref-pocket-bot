@@ -5,9 +5,10 @@
   },
   "scripts": {
     "bot": "node --env-file-if-exists=.env bot.mjs",
-    "echanges": "node --env-file-if-exists=.env amis-echanges.mjs",
-    "profils": "node --env-file-if-exists=.env profils.mjs",
-    "ameliore": "node --env-file-if-exists=.env ameliore-cartes.mjs"
+    "ameliore": "node --env-file-if-exists=.env ameliore-cartes.mjs",
+    "manquantes": "node --env-file-if-exists=.env cartes-manquantes.mjs",
+    "doublons": "node --env-file-if-exists=.env doublons.mjs",
+    "profils": "node --env-file-if-exists=.env profils.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4"

@@ -1,7 +1,6 @@
 node_modules/
 .env
-rapport-echanges.md
-echanges.json
-profils.json
-cartes-manquantes.md
 ameliorations.md
+cartes-manquantes.md
+doublons.md
+profils.json
