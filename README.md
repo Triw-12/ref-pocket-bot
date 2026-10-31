@@ -1,5 +1,11 @@
 # ref-pocket-bot
 
+> [!WARNING]
+> **Ce code a été entièrement fait par Claude et Copilot**, pour voir leur capacité à
+> faire un petit projet de A à Z et pour m'entraîner sur la gestion d'agents IA. Le but
+> étant aussi de répondre à un petit besoin que j'avais (une automatisation). **Seul le
+> README a été relu, le reste est susceptible d'avoir des erreurs.**
+
 Petits scripts d'automatisation pour **Ref Pocket**, le jeu de cartes à collectionner.
 Chaque script se connecte à **ton** compte (via l'API Supabase du jeu, exactement comme
 l'appli) et fait une tâche : ouvrir les boosters, améliorer les cartes, lister ce
