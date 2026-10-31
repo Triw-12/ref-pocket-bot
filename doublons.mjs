@@ -71,11 +71,11 @@ console.log(`${me.pseudo} : ${dups.length} cartes en doublon (${totalDup} exempl
 for (const r of ORDER) {
   const g = dups.filter((d) => d.r === r);
   if (!g.length) continue;
-  lines.push(`## ${RAR[r]} (${g.length})`, "", "| Carte | Total | Holos | Simples | En vente |", "|---|---:|---:|---:|---:|");
+  lines.push(`## ${RAR[r]} (${g.length})`, "", "| N° | Carte | Total | Holos | Simples | En vente |", "|---:|---|---:|---:|---:|---:|");
   console.log(`=== ${RAR[r]} (${g.length}) ===`);
   for (const d of g) {
-    lines.push(`| ${d.name} | ${d.total} | ${d.holo} | ${d.simple} | ${d.vente} |`);
-    console.log(`  ${d.name.slice(0, 40).padEnd(40)} total=${d.total}  holos=${d.holo}  simples=${d.simple}${d.vente ? `  vente=${d.vente}` : ""}`);
+    lines.push(`| ${d.n} | ${d.name} | ${d.total} | ${d.holo} | ${d.simple} | ${d.vente} |`);
+    console.log(`  n°${String(d.n).padEnd(4)} ${d.name.slice(0, 40).padEnd(40)} total=${d.total}  holos=${d.holo}  simples=${d.simple}${d.vente ? `  vente=${d.vente}` : ""}`);
   }
   lines.push("");
   console.log("");
