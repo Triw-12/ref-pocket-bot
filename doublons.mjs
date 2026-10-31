@@ -47,7 +47,9 @@ const m = new Map();
 for (const r of await fetchAll(() => sb.from("card_instances").select("card_id,holo,lock").eq("owner", me.id))) {
   const t = m.get(r.card_id) || { total: 0, holo: 0, simple: 0, vente: 0 };
   t.total++;
-  if (r.holo) t.holo++; else if (r.lock) t.vente++; else t.simple++;
+  // holo et « en vente » sont indépendants : un exemplaire peut être les deux.
+  if (r.holo) t.holo++; else t.simple++;
+  if (r.lock) t.vente++;
   m.set(r.card_id, t);
 }
 
