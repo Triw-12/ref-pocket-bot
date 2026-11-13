@@ -178,7 +178,8 @@ Met en vente sur le marché les exemplaires qui ne te servent plus :
 Ensuite, à chaque lancement :
 - une annonce restée sans acheteur trop longtemps **baisse de prix** ;
 - quand le prix atteindrait la valeur de défausse, la carte est **défaussée** : la vendre à
-  ce prix ne rapporterait pas plus ;
+  ce prix ne rapporterait pas plus. Tout ce qui dépasse 3 exemplaires disponibles de la carte est défaussé avec
+  elle (normales d'abord, les holos sont gardés en priorité) ;
 - **une seule annonce à la fois par carte** : l'exemplaire suivant part en vente au lancement
   d'après ;
 - **tes annonces posées à la main ne sont jamais touchées**.

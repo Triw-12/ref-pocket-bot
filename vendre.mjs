@@ -25,8 +25,8 @@
 //     est retirée puis remise en vente --baisse % du prix de référence moins cher (10 par
 //     défaut) ;
 //   - dès que ce prix atteindrait la valeur de défausse, personne n'en veut et la vendre à
-//     ce prix ne rapporterait pas plus : elle est défaussée tout de suite, ainsi que les
-//     autres exemplaires en surplus du même genre (holo / normale) de cette carte. Pareil
+//     ce prix ne rapporterait pas plus : elle est défaussée tout de suite, ainsi que tout ce
+//     qui dépasse 3 exemplaires disponibles de cette carte (normales d'abord, holos gardés). Pareil
 //     pour une carte dont le prix de départ tombe déjà sur la valeur de défausse (grosse
 //     remise). Avec --sans-defausse, rien n'est défaussé : elle reste en vente à ce prix ;
 //   - seules les annonces de surplus au prix de départ du script ou moins cher sont
@@ -94,6 +94,7 @@ const remisesTexte = (() => {
 const NIVEAU_MAX = 5; // LVL_MAX dans cartes.js du site
 const GARDER = 1; // exemplaires disponibles conservés sur une carte qui peut encore monter
 const GARDER_NIVEAU_MAX = 2; // ... et sur une carte au niveau maximum
+const GARDER_PLANCHER = 3; // exemplaires gardés quand le prix plancher est atteint : le reste est défaussé
 // Un cron quotidien ne tombe jamais pile à la même seconde : on tolère 10 % d'avance.
 const PALIER_MS = PALIER_H * 3600e3 * 0.9;
 
@@ -205,21 +206,25 @@ const defaussees = []; // { carte, holo, nombre, gain }
 const enAttente = []; // { carte, holo, prix, prochaine }
 
 // Défausse `premier` (un exemplaire qu'on vient de retirer de la vente, ou null), puis
-// les autres exemplaires en surplus du même genre (holo / normale) de cette carte.
+// tout ce qui dépasse GARDER_PLANCHER exemplaires disponibles de cette carte (normales
+// d'abord, les holos sont gardés en priorité) : si
+// personne n'en veut au prix plancher, personne n'en voudra des autres.
 async function defausser(c, holo, t, premier) {
   let nombre = 0, gain = 0;
-  const jeter = async (instance) => {
-    if (DRY) { gain += plancherDe(c.rarity, holo); nombre++; return true; }
+  const jeter = async (instance, h) => {
+    if (DRY) { gain += plancherDe(c.rarity, h); nombre++; return true; }
     const r = await sb.rpc("discard_card", { p_instance: instance });
     if (r.error) { echec(c, `défausse : ${r.error.message}`); return false; }
     gain += Number(r.data) || 0;
     nombre++;
     return true;
   };
-  if (premier == null || (await jeter(premier))) {
-    for (let x; (x = choisir(t, estNiveauMax(c.id))) && x.holo === holo; ) {
-      if (!(await jeter(x.instance))) break;
-      (holo ? t.holos : t.simples).pop();
+  const ok = premier == null || (await jeter(premier, holo));
+  if (ok && t.enVente === 0) {
+    while (t.holos.length + t.simples.length > GARDER_PLANCHER) {
+      const h = t.simples.length === 0;
+      if (!(await jeter((h ? t.holos : t.simples).at(-1), h))) break;
+      (h ? t.holos : t.simples).pop();
     }
   }
   if (nombre) {
