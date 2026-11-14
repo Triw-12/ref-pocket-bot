@@ -124,12 +124,14 @@ def ouvrir_boosters(email, password, gen):
     )
 
 
-def transferer(email_source, password_source, email, password, completer=None, uniques=False):
+def transferer(email_source, password_source, email, password, completer=None, uniques=False, kheys=None):
     """Transfère cartes et Kheys du compte source vers le compte (email, password).
 
     completer : si indiqué, envoie seulement les cartes qui manquent à la destination pour
     avoir ce nombre de cartes différentes jouables en deck, sans les Kheys.
     uniques : si vrai, envoie une seule instance de chaque carte différente (pas les doublons).
+    kheys : si indiqué (plus de 1), envoie seulement ce nombre de Kheys, sans aucune carte ;
+    la destination en rend 1, la contrepartie de l'échange.
     Lève CalledProcessError si le script échoue.
     """
     commande = [
@@ -144,6 +146,8 @@ def transferer(email_source, password_source, email, password, completer=None, u
         commande.append(f"--completer={completer}")
     if uniques:
         commande.append("--uniques")
+    if kheys is not None:
+        commande.append(f"--kheys={kheys}")
     _lancer(commande)
 
 

@@ -27,7 +27,7 @@ installer.
 - [Automatiser avec cron-job.org](#automatiser-avec-cron-joborg)
 - [Réglages](#réglages) : [boosters](#ouvrir-les-boosters) · [améliorer](#améliorer-les-cartes) ·
   [vendre](#vendre-les-doublons) · [retirer](#retirer-des-annonces) · [duels](#duels-du-jour) ·
-  [rapports](#rapports)
+  [machine à sous](#machine-à-sous) · [rapports](#rapports)
 - [Compte secondaire (pour les duels)](#compte-secondaire-pour-les-duels)
 - [Utilisation en local](#utilisation-en-local)
 - [Dépannage](#dépannage)
@@ -43,6 +43,7 @@ installer.
 | Vendre mes doublons inutiles, puis baisser leur prix s'ils ne partent pas | Vente des doublons inutiles | `npm run vendre` | `ventes.md` |
 | Retirer mes annonces du marché | Retrait des annonces | `npm run vendre -- --retirer` | `ventes.md` |
 | Jouer mes 10 duels récompensés du jour (+300 K) | Duels du jour contre le bot | `npm run duels` | `duels.md` |
+| Faire tourner la machine à sous (tours gratuits + 500 tours payants par jour) | Machine à sous | `npm run machine` | `machine.md` |
 | Savoir quelles cartes il me manque | Cartes manquantes | `npm run manquantes` | `cartes-manquantes.md` |
 | Voir mes cartes en plusieurs exemplaires | Cartes en doublon | `npm run doublons` | `doublons.md` |
 
@@ -126,6 +127,7 @@ le workflow est lancé (va voir l'onglet *Actions*). Sinon, voir [Dépannage](#d
 | Améliorer les cartes | `ameliore.yml` | `{"ref":"main"}` | 1×/jour |
 | Vendre les doublons | `vendre.yml` | `{"ref":"main"}` | 1×/jour |
 | Jouer les duels | `duels.yml` | `{"ref":"main"}` | 1×/jour, après 1 h du matin (heure de Paris) |
+| Faire tourner la machine à sous | `machine.yml` | `{"ref":"main"}` | 1×/jour, après 1 h du matin (heure de Paris) |
 | Rapports | `cartes-manquantes.yml`, `doublons.yml` | `{"ref":"main"}` | quand tu veux |
 
 Le body accepte aussi des réglages, dans `inputs` (les valeurs toujours **entre guillemets**).
@@ -138,6 +140,7 @@ Quelques exemples :
 | N'ouvrir que des boosters de Gén. 1 (`booster.yml`) | `{"ref":"main","inputs":{"generation":"1"}}` |
 | N'améliorer que la Gén. 2 (`ameliore.yml`) | `{"ref":"main","inputs":{"generation":"2"}}` |
 | Ne pas améliorer les communes | `{"ref":"main","inputs":{"communes":"false"}}` |
+| Machine à sous à 1 K le tour, en gardant toujours 2 000 K (`machine.yml`) | `{"ref":"main","inputs":{"mise":"1","reserve":"2000"}}` |
 
 Tous les réglages possibles sont décrits dans la section suivante.
 
@@ -234,6 +237,26 @@ cartes, en priorité une carte que tu n'as pas. Le compteur repart à zéro à m
 | `nombre` : `"3"` | `--nombre=3` | nombre maximum de duels | tous ceux qui restent |
 | `dry` : `"true"` | `--dry` | vérifie les comptes et les decks, sans jouer | — |
 
+### Machine à sous
+
+Fait tourner la machine **Fortune Khey** de l'onglet *Machine* : d'abord les tours gratuits
+gagnés à la roue de Nils, puis les tours payants jusqu'à la limite du jour (500), tant qu'il te
+reste assez de Kheys. Le tirage se fait sur le serveur, exactement comme dans l'appli. Le
+rapport donne le bilan (misé, gagné), les jackpots, les roues, et les boosters et cartes gagnés.
+
+| Sur GitHub / cron-job.org | En local | Effet | Par défaut |
+|---|---|---|---|
+| `mise` : `"1"`, `"5"`, `"10"` | `--mise=5` | mise de chaque tour payant | `10` |
+| `tours` : `"100"` | `--tours=100` | nombre maximum de tours payants (`0` : seulement les tours gratuits) | jusqu'à la limite du jour |
+| `reserve` : `"2000"` | `--reserve=2000` | Kheys que les tours payants ne touchent jamais | `0` |
+| `dry` : `"true"` | `--dry` | affiche l'état de la machine, sans jouer | — |
+
+D'après le jeu, la machine rend en moyenne environ 110 % des mises. La cagnotte GRAND n'est
+gagnée en entier qu'avec une mise de 10 K (la moitié à 5 K, 10 % à 1 K).
+
+> ⚠️ C'est du hasard : une série de 500 tours à 10 K engage jusqu'à 5 000 K et peut finir en
+> perte. Fixe une `reserve` si tu ne veux pas risquer tout ton solde.
+
 ### Rapports
 
 - **Cartes manquantes** : les cartes que tu n'as pas, par génération et par rareté. Si un
@@ -297,6 +320,7 @@ Pour lancer les scripts depuis ton ordinateur plutôt que sur GitHub.
    npm run vendre -- --remise-gen2=-50
    npm run ameliore -- --raretes=L,E --gen=2
    npm run duels -- --nombre=1
+   npm run machine -- --mise=1 --tours=20
    ```
    Pour ouvrir les boosters du compte secondaire :
    ```bash

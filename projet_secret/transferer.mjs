@@ -11,6 +11,9 @@
 //
 // Avec --uniques, une seule instance de chaque carte différente est envoyée (pas les doublons),
 // ce qui suffit pour compléter les albums. Les Kheys sont envoyés comme d'habitude.
+//
+// Avec --kheys=N, seuls N Kheys sont envoyés, sans aucune carte. La destination en rend 1
+// (la contrepartie de l'échange) : elle en gagne donc N - 1.
 
 import { ouvrirSession } from "../session.mjs";
 
@@ -44,6 +47,12 @@ if (completer !== null && (!Number.isInteger(completer) || completer < 1)) {
 
 const uniques = process.argv.includes("--uniques");
 if (uniques && completer !== null) stop("--uniques et --completer sont incompatibles.");
+
+const montant = option("kheys") === undefined ? null : Number(option("kheys"));
+if (montant !== null && (!Number.isInteger(montant) || montant <= CONTREPARTIE)) {
+  stop(`--kheys doit être un entier supérieur à ${CONTREPARTIE}.`);
+}
+if (montant !== null && (uniques || completer !== null)) stop("--kheys est incompatible avec --uniques et --completer.");
 
 async function connecter(email, password) {
   const masque = `${email.slice(0, 3)}***`; // ces messages peuvent finir dans des logs publics
@@ -155,10 +164,13 @@ const uniquesDe = (liste) => {
   }
   return [...parCarte.values()];
 };
-const aEnvoyer = completer !== null
-  ? await cartesACompleter(disponibles)
+if (montant !== null && montant > (source.me.kheys ?? 0)) {
+  stop(`${source.me.pseudo} n'a que ${source.me.kheys ?? 0} K : impossible d'en envoyer ${montant}.`);
+}
+const aEnvoyer = montant !== null ? []
+  : completer !== null ? await cartesACompleter(disponibles)
   : uniques ? uniquesDe(disponibles) : disponibles.map((c) => c.id);
-const kheys = completer === null ? (source.me.kheys ?? 0) : CONTREPARTIE;
+const kheys = montant ?? (completer === null ? (source.me.kheys ?? 0) : CONTREPARTIE);
 const bloquees = cartes.length - disponibles.length;
 
 const lots = [];

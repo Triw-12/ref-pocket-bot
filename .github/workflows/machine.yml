@@ -1,0 +1,59 @@
+name: Machine à sous
+on:
+  workflow_dispatch:
+    inputs:
+      mise:
+        description: "Mise des tours payants, en Kheys (la cagnotte GRAND n'est gagnée en entier qu'à 10)"
+        type: choice
+        options:
+          - "10"
+          - "5"
+          - "1"
+        default: "10"
+      tours:
+        description: "Nombre maximum de tours payants (vide = jusqu'à la limite du jour ; 0 = seulement les tours gratuits)"
+        default: ""
+      reserve:
+        description: "Kheys à garder : les tours payants s'arrêtent avant de descendre en dessous"
+        default: "0"
+      dry:
+        description: "Test à blanc : afficher l'état de la machine sans jouer"
+        type: boolean
+        default: false
+
+# Deux exécutions simultanées se partageraient la limite du jour et le solde
+concurrency: machine
+
+jobs:
+  machine:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: |
+          args=("--mise=$MISE" "--reserve=$RESERVE")
+          if [ -n "$TOURS" ]; then args+=("--tours=$TOURS"); fi
+          if [ "$DRY" = "true" ]; then args+=(--dry); fi
+          npm run machine -- "${args[@]}"
+        env:
+          REF_EMAIL: ${{ secrets.REF_EMAIL }}
+          REF_PASS: ${{ secrets.REF_PASS }}
+          MISE: ${{ inputs.mise || '10' }}
+          TOURS: ${{ inputs.tours }}
+          RESERVE: ${{ inputs.reserve || '0' }}
+          DRY: ${{ inputs.dry }}
+      - run: '[ ! -f machine.md ] || cat machine.md >> "$GITHUB_STEP_SUMMARY"'
+        if: always()
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: machine
+          path: machine.md
+          if-no-files-found: ignore

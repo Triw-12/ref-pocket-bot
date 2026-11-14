@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Entretient le compte principal : boosters, rapatriement, amélioration et défausse des surplus.
 
-    python3 projet_secret/maintenir.py [--dry] [--gen=1|2]
+    python3 projet_secret/maintenir.py [--gen=1|2]
 
 Le compte principal est le premier de compte-auto.json (créé s'il n'y en a aucun). Dans l'ordre :
 ouverture des boosters, rapatriement des cartes restées sur les comptes secondaires (après les
 avoir fait jouer deux par deux), amélioration des cartes (ameliore-cartes.mjs), puis défausse des
-exemplaires en trop des cartes déjà au niveau 5 (defausser.mjs). Avec --dry, rien n'est amélioré
-ni défaussé, mais les boosters et le rapatriement ont lieu normalement.
+exemplaires en trop des cartes déjà au niveau 5 (defausser.mjs), et enfin les tours de machine à
+sous (machine.mjs, 10 K par tour) : le principal d'abord, puis chaque compte secondaire à qui le
+principal prête les Kheys nécessaires, et qui lui renvoie tout aussitôt après. Le compte rendu de
+la machine est écrit dans machine.md.
 """
 
 import os
@@ -25,7 +27,11 @@ from projet_secret import (
     lire_comptes,
     ouvrir_boosters,
     rapatrier,
+    transferer,
 )
+
+CONTREPARTIE = 1  # Kheys rendus à chaque échange (même valeur que transferer.mjs)
+MISE = 10  # Kheys par tour de machine : la cagnotte GRAND n'est gagnée en entier qu'à 10 K
 
 
 def choisir_gen(email, password):
@@ -43,18 +49,16 @@ def choisir_gen(email, password):
     return gen
 
 
-def ameliorer(email, password, dry=False):
+def ameliorer(email, password):
     """Améliore toutes les cartes du compte qui peuvent l'être (compte rendu dans ameliorations.md).
 
     Lève CalledProcessError si le script échoue.
     """
     commande = ["node", str(RACINE / "ameliore-cartes.mjs")]
-    if dry:
-        commande.append("--dry")
     _lancer(commande, cwd=RACINE, env={**os.environ, "REF_EMAIL": email, "REF_PASS": password})
 
 
-def defausser_surplus(email, password, dry=False):
+def defausser_surplus(email, password):
     """Défausse les exemplaires en surplus des cartes au niveau maximum.
 
     Lève CalledProcessError si le script échoue.
@@ -65,14 +69,82 @@ def defausser_surplus(email, password, dry=False):
         f"--email={email}",
         f"--password={password}",
     ]
-    if dry:
-        commande.append("--dry")
     _lancer(commande)
 
 
-if __name__ == "__main__":
-    dry = "--dry" in sys.argv[1:]
+def etat_machine(email, password):
+    """Renvoie {"tours": tours payants restants aujourd'hui, "gratuits": ..., "kheys": solde}.
 
+    Lève CalledProcessError si le script échoue.
+    """
+    return _lire_json("machine-restants.mjs", email, password)
+
+
+def tourner(email, password):
+    """Fait les tours de machine à sous du compte : les gratuits, puis les payants à MISE Kheys
+    jusqu'à la limite du jour ou au bout de ses Kheys. Le compte rendu s'ajoute à machine.md.
+
+    Lève CalledProcessError si le script échoue.
+    """
+    _lancer(
+        ["node", str(RACINE / "machine.mjs"), f"--mise={MISE}", "--ajouter"],
+        cwd=RACINE,
+        env={**os.environ, "REF_EMAIL": email, "REF_PASS": password},
+    )
+
+
+def machine_pour_tous(principal, secondaires):
+    """Fait tourner la machine au principal, puis à chaque compte secondaire avec ses Kheys.
+
+    Un compte secondaire à qui il reste des tours reçoit de quoi miser sur tous ses tours payants
+    (dans la limite de ce que le principal possède), joue, puis renvoie tout au
+    principal, même si ses tours échouent. Un renvoi raté est seulement signalé : le rapatriement
+    du prochain lancement le rattrape. Les comptes sont servis un par un, le principal récupérant
+    les gains de chacun avant de prêter au suivant.
+    """
+    email_principal, password_principal = principal["email"], principal["password"]
+    (RACINE / "machine.md").unlink(missing_ok=True)
+
+    print(f"Machine à sous de {principal['pseudo']} (compte principal)...")
+    try:
+        tourner(email_principal, password_principal)
+    except subprocess.CalledProcessError:
+        print("Machine impossible pour le compte principal : les comptes secondaires jouent quand même.")
+
+    for bot in secondaires:
+        try:
+            etat = etat_machine(bot["email"], bot["password"])
+            if etat["tours"] == 0 and etat["gratuits"] == 0:
+                print(f"{bot['pseudo']} a déjà fait tous ses tours aujourd'hui.")
+                continue
+            disponible = etat_machine(email_principal, password_principal)["kheys"]
+        except subprocess.CalledProcessError:
+            print(f"État de la machine illisible pour {bot['pseudo']} : compte ignoré.")
+            continue
+
+        # Le compte garde les Kheys qu'il a déjà ; le principal complète jusqu'au besoin de la journée
+        envoi = min(disponible, max(0, etat["tours"] * MISE - etat["kheys"]))
+        if envoi <= CONTREPARTIE:
+            envoi = 0  # un échange de 1 K ne rapporterait rien : la contrepartie le reprend
+        if etat["gratuits"] == 0 and etat["kheys"] + max(0, envoi - CONTREPARTIE) < MISE:
+            print(f"Pas assez de Kheys sur le compte principal pour {bot['pseudo']} : compte ignoré.")
+            continue
+
+        print(f"Machine à sous de {bot['pseudo']} : {etat['tours']} tours payants, {etat['gratuits']} gratuits, {envoi} K prêtés.")
+        try:
+            if envoi:
+                transferer(email_principal, password_principal, bot["email"], bot["password"], kheys=envoi)
+            tourner(bot["email"], bot["password"])
+        except subprocess.CalledProcessError:
+            print(f"Machine impossible pour {bot['pseudo']} : ses Kheys sont quand même renvoyés.")
+        finally:
+            try:
+                transferer(bot["email"], bot["password"], email_principal, password_principal)
+            except subprocess.CalledProcessError:
+                print(f"Renvoi impossible depuis {bot['pseudo']} : il sera rapatrié au prochain lancement.")
+
+
+if __name__ == "__main__":
     ## Reprendre les comptes déjà créés, sinon créer le compte principal
 
     joueurs = lire_comptes()
@@ -87,7 +159,7 @@ if __name__ == "__main__":
 
     principal = joueurs[0]
     email_principal, password_principal = principal["email"], principal["password"]
-    print("Compte principal :", principal["pseudo"], "| comptes repris :", len(joueurs), "(dry)" if dry else "")
+    print("Compte principal :", principal["pseudo"], "| comptes repris :", len(joueurs))
 
     try:
         gen = choisir_gen(email_principal, password_principal)
@@ -102,8 +174,11 @@ if __name__ == "__main__":
             rapatrier(joueur, principal, gen, adversaire)
 
         print("Amélioration des cartes...")
-        ameliorer(email_principal, password_principal, dry)
+        ameliorer(email_principal, password_principal)
         print("Défausse des surplus au niveau max...")
-        defausser_surplus(email_principal, password_principal, dry)
+        defausser_surplus(email_principal, password_principal)
     except subprocess.CalledProcessError as erreur:
         sys.exit(erreur.returncode)
+
+    # En dernier : l'amélioration des cartes passe avant les mises
+    machine_pour_tous(principal, joueurs[1:])

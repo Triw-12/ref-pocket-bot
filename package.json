@@ -13,7 +13,8 @@
     "doublons": "node --env-file-if-exists=.env doublons.mjs",
     "vendre": "node --env-file-if-exists=.env vendre.mjs",
     "profils": "node --env-file-if-exists=.env profils.mjs",
-    "duels": "node --env-file-if-exists=.env duels.mjs"
+    "duels": "node --env-file-if-exists=.env duels.mjs",
+    "machine": "node --env-file-if-exists=.env machine.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0"

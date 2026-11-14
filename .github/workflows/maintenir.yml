@@ -10,10 +10,6 @@ on:
           - "1"
           - "2"
         default: auto
-      dry:
-        description: "Ne rien améliorer ni défausser (les boosters et le rapatriement ont lieu)"
-        type: boolean
-        default: false
 
 # Deux exécutions simultanées annuleraient mutuellement leurs échanges en cours
 concurrency: rapatrier
@@ -23,7 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 120 # large : un arrêt en cours de route laisserait des cartes prêtées
+    # Large : un arrêt en cours de route laisserait des cartes ou des Kheys prêtés.
+    # La machine à sous fait jusqu'à 500 tours par compte : le maximum de GitHub.
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -47,12 +45,12 @@ jobs:
         run: |
           options=()
           if [ "$GENERATION" = "1" ] || [ "$GENERATION" = "2" ]; then options+=("--gen=$GENERATION"); fi
-          if [ "$DRY" = "true" ]; then options+=("--dry"); fi
           python3 -u projet_secret/maintenir.py "${options[@]}"
         env:
           GENERATION: ${{ inputs.generation }}
-          DRY: ${{ inputs.dry }}
           # Hors du dépôt : chaque compte ne se connecte qu'une fois par lancement
           REF_SESSIONS: ${{ runner.temp }}/sessions.json
       - run: '[ ! -f ameliorations.md ] || cat ameliorations.md >> "$GITHUB_STEP_SUMMARY"'
+        if: always()
+      - run: '[ ! -f machine.md ] || { echo "# Machine à sous"; cat machine.md; } >> "$GITHUB_STEP_SUMMARY"'
         if: always()
