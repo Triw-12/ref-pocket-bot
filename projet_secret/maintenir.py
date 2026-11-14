@@ -12,6 +12,7 @@ principal prête les Kheys nécessaires, et qui lui renvoie tout aussitôt aprè
 la machine est écrit dans machine.md.
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -103,7 +104,12 @@ def machine_pour_tous(principal, secondaires):
     les gains de chacun avant de prêter au suivant.
     """
     email_principal, password_principal = principal["email"], principal["password"]
-    (RACINE / "machine.md").unlink(missing_ok=True)
+    for fichier in ("machine.md", "machine.jsonl"):
+        (RACINE / fichier).unlink(missing_ok=True)
+    try:
+        kheys_avant = etat_machine(email_principal, password_principal)["kheys"]
+    except subprocess.CalledProcessError:
+        kheys_avant = None
 
     print(f"Machine à sous de {principal['pseudo']} (compte principal)...")
     try:
@@ -142,6 +148,46 @@ def machine_pour_tous(principal, secondaires):
                 transferer(bot["email"], bot["password"], email_principal, password_principal)
             except subprocess.CalledProcessError:
                 print(f"Renvoi impossible depuis {bot['pseudo']} : il sera rapatrié au prochain lancement.")
+
+    try:
+        kheys_apres = etat_machine(email_principal, password_principal)["kheys"]
+    except subprocess.CalledProcessError:
+        kheys_apres = None
+    bilan_machine(kheys_avant, kheys_apres)
+
+
+def bilan_machine(kheys_avant, kheys_apres):
+    """Ajoute en tête de machine.md le bilan de tous les comptes, à partir de machine.jsonl.
+
+    La variation des Kheys du principal est la mesure qui compte : elle inclut tout, et un
+    renvoi raté y apparaît comme une perte, rattrapée au prochain rapatriement.
+    """
+    chemin = RACINE / "machine.jsonl"
+    sessions = [json.loads(l) for l in chemin.read_text(encoding="utf-8").splitlines() if l] if chemin.exists() else []
+    total = {cle: sum(s[cle] for s in sessions) for cle in ("payes", "gratuits", "mise_totale", "gains", "boosters", "cartes", "jackpots")}
+    net = total["gains"] - total["mise_totale"]
+    retour = f"{100 * total['gains'] / total['mise_totale']:.1f} %" if total["mise_totale"] else "—"
+    variation = (
+        f"{kheys_avant} K → {kheys_apres} K ({kheys_apres - kheys_avant:+d} K)"
+        if kheys_avant is not None and kheys_apres is not None else "illisible"
+    )
+    lignes = [
+        "## Bilan de tous les comptes",
+        "",
+        "| | |",
+        "|---|---|",
+        f"| Comptes qui ont joué | {len(sessions)} |",
+        f"| Tours | {total['payes']} payants, {total['gratuits']} gratuits |",
+        f"| Misé / gagné | {total['mise_totale']} K / {total['gains']} K |",
+        f"| **Bilan des tours** | **{net:+d} K** (retour {retour}) |",
+        f"| Kheys du principal | {variation} |",
+        f"| Boosters / cartes épiques / jackpots | {total['boosters']} / {total['cartes']} / {total['jackpots']} |",
+        "",
+    ]
+    print(f"Machine à sous : {len(sessions)} comptes, {net:+d} K (retour {retour}), Kheys du principal : {variation}.")
+    rapport = RACINE / "machine.md"
+    ancien = rapport.read_text(encoding="utf-8") if rapport.exists() else ""
+    rapport.write_text("\n".join(lignes) + "\n" + ancien, encoding="utf-8")
 
 
 if __name__ == "__main__":

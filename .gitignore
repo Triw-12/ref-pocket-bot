@@ -8,5 +8,8 @@ ventes.md
 profils.json
 duels.md
 machine.md
+machine.jsonl
+historique-machine/
+bilan-machine.md
 .password_tmp
 site/

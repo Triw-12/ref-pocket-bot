@@ -12,6 +12,9 @@
 //   --dry          affiche l'état de la machine sans jouer
 //   --ajouter      ajoute le rapport à la fin de machine.md, sous le pseudo du compte,
 //                  au lieu de le remplacer (plusieurs comptes à la suite)
+//
+// Chaque lancement écrit aussi une ligne JSON dans machine.jsonl (ajoutée à la suite avec
+// --ajouter), sans pseudo ni e-mail : c'est l'historique que lit projet_secret/bilan-machine.py.
 
 import { appendFileSync, writeFileSync } from "node:fs";
 import { connecter } from "./session.mjs";
@@ -150,6 +153,14 @@ const lignes = [
   "",
 ].filter((l) => l !== null);
 (AJOUTER ? appendFileSync : writeFileSync)("machine.md", lignes.join("\n") + (AJOUTER ? "\n" : ""));
+if (!DRY) {
+  const session = {
+    date: new Date().toISOString(), mise: MISE, payes: stats.payes, gratuits: stats.gratuits,
+    mise_totale: stats.mise, gains: stats.gains, plus_gros: stats.meilleur?.win ?? 0,
+    jackpots: stats.jackpots.length, roues: stats.roues.length, boosters: stats.boosters, cartes: stats.cartes.length,
+  };
+  (AJOUTER ? appendFileSync : writeFileSync)("machine.jsonl", JSON.stringify(session) + "\n");
+}
 log(`Bilan : ${stats.payes} payant(s), ${stats.gratuits} gratuit(s), ${net >= 0 ? "+" : ""}${k(net)}. Rapport : machine.md`);
 
 // Un refus du serveur dès le premier tour mérite un run rouge

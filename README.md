@@ -50,9 +50,9 @@ installer.
 Les duels demandent un [compte secondaire](#compte-secondaire-pour-les-duels) qui te sert
 d'adversaire. Tout le reste fonctionne avec ton seul compte.
 
-> L'onglet *Actions* affiche aussi **« Rapatrier les comptes »** et **« Maintenir le compte
-> principal »** : c'est un usage personnel de l'auteur. Ignore-les, ils échouent sans
-> configuration particulière.
+> L'onglet *Actions* affiche aussi **« Rapatrier les comptes »**, **« Maintenir le compte
+> principal »** et **« Bilan de la machine à sous »** : c'est un usage personnel de l'auteur.
+> Ignore-les, ils échouent ou restent vides sans configuration particulière.
 
 ## Démarrage rapide (5 minutes)
 

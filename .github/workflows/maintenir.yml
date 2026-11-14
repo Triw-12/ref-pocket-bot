@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read # lire l'historique de la machine (artifacts des runs précédents)
     # Large : un arrêt en cours de route laisserait des cartes ou des Kheys prêtés.
     # La machine à sous fait jusqu'à 500 tours par compte : le maximum de GitHub.
     timeout-minutes: 360
@@ -54,3 +55,28 @@ jobs:
         if: always()
       - run: '[ ! -f machine.md ] || { echo "# Machine à sous"; cat machine.md; } >> "$GITHUB_STEP_SUMMARY"'
         if: always()
+      # Historique de la machine, lu par projet_secret/bilan-machine.py (sans pseudo ni e-mail)
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: machine
+          path: machine.jsonl
+          retention-days: 90
+          if-no-files-found: ignore
+      # Bilan cumulé : récupère l'historique des runs précédents, y ajoute celui-ci et le renvoie
+      - name: Bilan cumulé de la machine
+        id: bilan
+        if: always()
+        continue-on-error: true
+        run: |
+          python3 -u projet_secret/bilan-machine.py --courant=machine.jsonl
+          cat bilan-machine.md >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() && steps.bilan.outcome == 'success' }}
+        with:
+          name: historique-machine
+          path: historique-machine/historique.jsonl
+          retention-days: 90
+          if-no-files-found: ignore

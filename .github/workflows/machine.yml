@@ -55,5 +55,8 @@ jobs:
         if: always()
         with:
           name: machine
-          path: machine.md
+          path: |
+            machine.md
+            machine.jsonl
+          retention-days: 90
           if-no-files-found: ignore
