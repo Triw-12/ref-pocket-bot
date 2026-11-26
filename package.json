@@ -17,6 +17,6 @@
     "machine": "node --env-file-if-exists=.env machine.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.0"
+    "@supabase/supabase-js": "^2.119.2"
   }
 }
